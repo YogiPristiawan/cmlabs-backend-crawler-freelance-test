@@ -7,6 +7,7 @@ import (
 var links = []string{
 	"https://cmlabs.co",
 	"https://sequence.day",
+	"https://niagahoster.co.id",
 }
 
 func main() {

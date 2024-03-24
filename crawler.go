@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/url"
+	"strings"
 	"sync"
 
 	"golang.org/x/net/html"
@@ -26,9 +27,10 @@ func Craw(wg *sync.WaitGroup, link string, queueChannel chan string) {
 			attributes := token.Attr
 			for _, attr := range attributes {
 				if attr.Key == "href" {
-					if isValidURL(attr.Val) {
+					sanitizedUrl, valid := sanitizeURL(attr.Val, link)
+					if valid {
 						wg.Add(1)
-						queueChannel <- attr.Val
+						queueChannel <- sanitizedUrl
 					}
 				}
 			}
@@ -40,19 +42,31 @@ func isAnchor(token html.Token) bool {
 	return token.DataAtom.String() == "a"
 }
 
-func isValidURL(str string) bool {
-	u, err := url.ParseRequestURI(str)
-
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return false
+func sanitizeURL(nextTarget string, currentTarget string) (sanitized string, valid bool) {
+	nt, err := url.ParseRequestURI(nextTarget)
+	if err != nil {
+		return "", false
 	}
 
-	for _, target := range links {
-		u2, _ := url.ParseRequestURI(target)
-		if u2.Scheme == u.Scheme && u2.Host == u.Host {
-			return true
+	ct, err := url.ParseRequestURI(currentTarget)
+	if err != nil {
+		return "", false
+	}
+
+	if nt.Scheme == "" && nt.Host == "" && strings.HasPrefix(nt.Path, "/") {
+		nt.Scheme = ct.Scheme
+		nt.Host = ct.Host
+	}
+
+	for _, link := range links {
+		l, _ := url.ParseRequestURI(link)
+
+		s := strings.HasSuffix(nt.Host, l.Host)
+
+		if l.Scheme == nt.Scheme && l.Host == nt.Host && s {
+			return nt.String(), true
 		}
 	}
 
-	return false
+	return "", false
 }
