@@ -5,9 +5,7 @@ import (
 	"sync"
 )
 
-type QueueChannel chan string
-
-func Queue(wg *sync.WaitGroup, crawedLinkChannel chan string) (queueCh QueueChannel, closeFn func()) {
+func Queue(wg *sync.WaitGroup, crawedLinkChannel chan string) (queueCh chan string, closeFn func()) {
 	queueCh = make(chan string, 10)
 	var mtx sync.RWMutex
 
